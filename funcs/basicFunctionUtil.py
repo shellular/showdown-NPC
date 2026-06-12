@@ -1,6 +1,8 @@
 import subprocess
 import json
 
+def ping():
+     print("pong")
 
 
 def readFile(fileDirectoryFromBaseFolder):
