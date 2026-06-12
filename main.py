@@ -1,6 +1,7 @@
 import os
 import subprocess
-import funcs
+from funcs import basicFunctionUtil
+from funcs import serverLoad
 
-funcs.basicFunctionUtil.ping()
-funcs.serverLoad
+basicFunctionUtil.ping()
+serverLoad.fullHousekeeping()
