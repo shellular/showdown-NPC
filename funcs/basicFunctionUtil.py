@@ -26,7 +26,6 @@ def readFile(fileDirectoryFromBaseFolder):
 def loadFileAsJSON(fileDirectoryFromBaseFolder):
 
     fileReadSuccess, fileOutput = readFile(fileDirectoryFromBaseFolder)
-
     #checks if readFile threw an error and only does the thing if it didn't
     if fileReadSuccess:
 
@@ -64,8 +63,6 @@ def grabValueFromJSON(fileDirectoryFromBaseFolder, dictValue):
 def dumpJSON(fileDirectoryFromBaseFolder):
 
     fileReadSuccess, fileOutput = readFile(fileDirectoryFromBaseFolder)
-
-    #checks if readFile threw an error and only does the thing if it didn't
     if fileReadSuccess:
 
         loadedFileAsJSON = json.loads(fileOutput)
@@ -77,22 +74,22 @@ def dumpJSON(fileDirectoryFromBaseFolder):
         
 
 #basic command running functionality. apparently cwd specifies where to put stuff
-def runCommand(command, useShell, cwdUsed=None):
+def runCommand(command, useShell, cwdUsed=None, popen=False):
+    if not popen:
+        try:
+            #send me your commands and we will send you output. remember it's just commands so it won't be much output
+            result = subprocess.run(command, capture_output=True, text=True, check=True, shell=useShell, cwd=cwdUsed)
+            return {"endResult": "SUCCESS", "stdout": result.stdout, "stderr": result.stderr, "returncode": result.returncode}
 
-    try:
-        #send me your commands and we will send you output. remember it's just commands so it won't be much output
-        result = subprocess.run(command, capture_output=True, text=True, check=True, shell=useShell, cwd=cwdUsed)
-        return {"endResult": "SUCCESS", "stdout": result.stdout, "stderr": result.stderr, "returncode": result.returncode}
+        #no idea what the difference between SubprocessError and CalledProcessError beyond SubprocessError being the catch-all is but it can't hurt to have both
+        except subprocess.CalledProcessError as e:
+            return {"endResult": "ERROR_SPECIFIC", "stdout": e.stdout, "stderr": e.stderr, "returncode": e.returncode}
 
-    #no idea what the difference between SubprocessError and CalledProcessError beyond SubprocessError being the catch-all is but it can't hurt to have both
-    except subprocess.CalledProcessError as e:
-        return {"endResult": "ERROR_SPECIFIC", "stdout": e.stdout, "stderr": e.stderr, "returncode": e.returncode}
-
-    except FileNotFoundError as e:
-        return {"endResult": "ERROR_NO_FILE", "stdout": None, "stderr": str(e), "returncode": None}
-    
-    except subprocess.SubprocessError as e:
-        return {"endResult": "ERROR_BROAD", "stdout": None, "stderr": str(e), "returncode": None}
-    
-    
+        except FileNotFoundError as e:
+            return {"endResult": "ERROR_NO_FILE", "stdout": None, "stderr": str(e), "returncode": None}
+        
+        except subprocess.SubprocessError as e:
+            return {"endResult": "ERROR_BROAD", "stdout": None, "stderr": str(e), "returncode": None}
+    else:
+        subprocess.Popen(command, shell=useShell, cwd=cwdUsed)
 

@@ -1,5 +1,6 @@
 import basicFunctionUtil
 import pathlib
+import webbrowser
 
 def initNPMCheck():
     commandRanResult = basicFunctionUtil.runCommand("npm help")
@@ -15,8 +16,20 @@ def tryInstallShowdown():
         #make path showdownInstall if it does not exist
         pathlib.Path("showdownInstall").mkdir(parents=True, exist_ok=True)
         #clones showdown into folder
-        basicFunctionUtil.runCommand("git clone https://github.com/smogon/pokemon-showdown.git", True, "showdownInstall")
+        if not pathlib.Path("showdownInstall/pokemon-showdown").exists():
+            #takes it from the git repo
+            basicFunctionUtil.runCommand("git clone https://github.com/smogon/pokemon-showdown.git", True, "showdownInstall")
         return "SUCCESS"
 
-def launchServer():
-    basicFunctionUtil.runCommand("node pokemon-showdown 8000", True, "showdownInstall/Pokemon-Showdown")
+def launchServerWithSite():
+    basicFunctionUtil.runCommand("node pokemon-showdown 8000", True, "showdownInstall/pokemon-showdown", True)
+    webbrowser.open("http://localhost:8000")
+
+def fullHousekeeping():
+
+    installState = tryInstallShowdown()
+
+    if installState == "SUCCESS":
+
+        if pathlib.Path("showdownInstall/pokemon-showdown").exists():
+            launchServerWithSite()
