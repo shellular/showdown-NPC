@@ -20,38 +20,54 @@ def readFile(fileDirectoryFromBaseFolder):
 
 
 
-#0 is to load full file, 1 is to return value, 2 creates a dump
-def manageJSON(fileDirectoryFromBaseFolder, typeToReturn = 0, dictValue = "placeholderDictValue"):
+
+def loadFileAsJSON(fileDirectoryFromBaseFolder):
 
     fileReadSuccess, fileOutput = readFile(fileDirectoryFromBaseFolder)
 
     #checks if readFile threw an error and only does the thing if it didn't
     if fileReadSuccess:
 
-
         loadedFileAsJSON = json.loads(fileOutput)
-        #if it becomes a dictionary, do that
-        if typeToReturn == 0:
-            #load the text we just read and send it back as a dict
-            return loadedFileAsJSON
+        #load the text we just read and send it back as a dict
+        return loadedFileAsJSON
         
-        elif typeToReturn == 1:
-            #load the text we just read and send it back as a dict. if it's not there then get pissed
-            try:
-                return loadedFileAsJSON[dictValue]
-            
-            except:
-                print("dunno what you sent but it wasn't a dictValue")
-                return None
 
-        elif typeToReturn == 2:
-            #pretty self explanatory. you do a little dump
-            return json.dumps(loadedFileAsJSON)
+    elif not fileReadSuccess:
+            print(f"couldn't read file {fileDirectoryFromBaseFolder}")
+
+
+
+
+def grabValueFromJSON(fileDirectoryFromBaseFolder, dictValue):
+
+    fileReadSuccess, fileOutput = readFile(fileDirectoryFromBaseFolder)
+    if fileReadSuccess:
+
+        try:
+            loadedFileAsJSON = json.loads(fileOutput)
+            return loadedFileAsJSON[dictValue]
         
-        else:
-            print("i dunno what you tried to do here but you didn't send the right type to return")
+        except:
+            print("dunno what you sent but it wasn't a dictValue")
             return None
         
+        
+    elif not fileReadSuccess:
+            print(f"couldn't read file {fileDirectoryFromBaseFolder}")
+
+
+
+
+def dumpJSON(fileDirectoryFromBaseFolder):
+
+    fileReadSuccess, fileOutput = readFile(fileDirectoryFromBaseFolder)
+
+    #checks if readFile threw an error and only does the thing if it didn't
+    if fileReadSuccess:
+
+        loadedFileAsJSON = json.loads(fileOutput)
+        return json.dumps(loadedFileAsJSON)     
 
     elif not fileReadSuccess:
             print(f"couldn't read file {fileDirectoryFromBaseFolder}")
@@ -64,19 +80,17 @@ def runCommand(command):
     try:
         #send me your commands and we will send you output. remember it's just commands so it won't be much output
         result = subprocess.run(command, capture_output=True, text=True, check=True)
-        return "SUCCESS", result.stdout
+        return {"endResult": "SUCCESS", "stdout": result.stdout, "stderr": result.stderr, "returncode": result.returncode}
 
     #no idea what the difference between SubprocessError and CalledProcessError beyond SubprocessError being the catch-all is but it can't hurt to have both
     except subprocess.CalledProcessError as e:
-        print(f"you fucked up the command \"{e.cmd}\" and the code freaked out.\n\n Error: {e.stderr}\n(calledprocesserror)")
-        return "ERROR_SPECIFIC", e.stderr
+        return {"endResult": "ERROR_SPECIFIC", "stdout": e.stdout, "stderr": e.stderr, "returncode": e.returncode}
 
-    except FileNotFoundError:
-        print(f"you don't own whatever you called here. (filenotfounderror)")
-        return "ERROR_NO_FILE", "empty"
+    except FileNotFoundError as e:
+        return {"endResult": "ERROR_NO_FILE", "stdout": None, "stderr": str(e), "returncode": None}
     
     except subprocess.SubprocessError as e:
-        print(f"you fucked up the command \"{e}\" and the code freaked out. (subprocesserror)")
-        return "ERROR_BROAD", str(e)
+        return {"endResult": "ERROR_BROAD", "stdout": None, "stderr": str(e), "returncode": None}
     
     
+
