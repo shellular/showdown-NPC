@@ -3,9 +3,10 @@ import pathlib
 import webbrowser
 
 def initNPMCheck():
-    commandRanResult = basicFunctionUtil.runCommand("npm help")
+    commandRanResult = basicFunctionUtil.runCommand("npm help", False, None, False, False, False, False)
     #apparently you can send back a logic statement and it'll end up as a true/false bool. neato
     return commandRanResult["endResult"] == "SUCCESS"
+
 
 def tryInstallShowdown():
     hasNPM = initNPMCheck()
@@ -21,9 +22,11 @@ def tryInstallShowdown():
             basicFunctionUtil.runCommand("git clone https://github.com/smogon/pokemon-showdown.git", True, "showdownInstall")
         return "SUCCESS"
 
+
 def launchServerWithSite():
     basicFunctionUtil.runCommand("node pokemon-showdown 8000", True, "showdownInstall/pokemon-showdown", True)
     webbrowser.open("http://localhost:8000")
+
 
 def fullHousekeeping():
 
