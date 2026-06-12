@@ -76,12 +76,12 @@ def dumpJSON(fileDirectoryFromBaseFolder):
     
         
 
-#basic command running functionality
-def runCommand(command):
+#basic command running functionality. apparently cwd specifies where to put stuff
+def runCommand(command, useShell, cwdUsed=None):
 
     try:
         #send me your commands and we will send you output. remember it's just commands so it won't be much output
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        result = subprocess.run(command, capture_output=True, text=True, check=True, shell=useShell, cwd=cwdUsed)
         return {"endResult": "SUCCESS", "stdout": result.stdout, "stderr": result.stderr, "returncode": result.returncode}
 
     #no idea what the difference between SubprocessError and CalledProcessError beyond SubprocessError being the catch-all is but it can't hurt to have both
