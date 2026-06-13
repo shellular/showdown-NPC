@@ -95,4 +95,5 @@ def runCommand(command, useShell, cwdUsed=None, popen=False, capture_output=True
             return {"endResult": "ERROR_BROAD", "stdout": None, "stderr": str(e), "returncode": None}
     else:
         subprocess.Popen(command, shell=useShell, cwd=cwdUsed)
+        return {"endResult": "STARTED_P",  "stdout": None, "stderr": None, "returncode": None}
 
