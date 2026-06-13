@@ -36,6 +36,7 @@ async def main():
     try:
         
         bot = RandomPlayer(
+            avatar=botInfo["avatar"],
             account_configuration=AccountConfiguration(botInfo["name"], None),
             max_concurrent_battles=1
         )
@@ -46,7 +47,8 @@ async def main():
         
     print("\nThe bot's now looking to accept a fight. Here's how to fight it:" \
     "\n1. Choose a name in the top right. If it's taken, choose a different name." \
-    f"\n2. Click \"Find a User\" on the left, then search \"{botInfo["name"]}\".")
+    f"\n2. Click \"Find a User\" on the left, then search \"{botInfo["name"]}\"." \
+    "Click \"Challenge\" under their profile, and set the challenge to be a Random Battle (it's that by default.) They should accept.")
 
     await bot.accept_challenges(None, 1)
 
