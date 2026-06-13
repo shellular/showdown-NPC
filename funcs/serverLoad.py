@@ -26,10 +26,9 @@ def tryInstallShowdown():
 def launchServer():
     basicFunctionUtil.runCommand("node pokemon-showdown start 8000 --no-security", True, "showdownInstall/pokemon-showdown", True)
 
+
 def launchSite():
-    webbrowser.open("http://localhost:8000")
-
-
+    webbrowser.open(f"http://localhost:8000")
 
 def fullHousekeeping():
 
