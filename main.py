@@ -48,6 +48,6 @@ async def main():
     "\n1. Choose a name in the top right. If it's taken, choose a different name." \
     f"\n2. Click \"Find a User\" on the left, then search \"{botInfo["name"]}\".")
 
-    bot.accept_challenges(None, 1)
+    await bot.accept_challenges(None, 1)
 
 asyncio.run(main())
