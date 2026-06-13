@@ -1,7 +1,12 @@
 import os
 import subprocess
+import asyncio
+
 from funcs import basicFunctionUtil
 from funcs import serverLoad
 
-basicFunctionUtil.ping()
-serverLoad.fullHousekeeping()
+async def main():
+    basicFunctionUtil.ping()
+    serverLoad.fullHousekeeping()
+
+asyncio.run(main())

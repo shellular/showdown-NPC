@@ -1,9 +1,9 @@
-import basicFunctionUtil
+from . import basicFunctionUtil
 import pathlib
 import webbrowser
 
 def initNPMCheck():
-    commandRanResult = basicFunctionUtil.runCommand("npm help", False, None, False, False, False, False)
+    commandRanResult = basicFunctionUtil.runCommand("npm help", True, None, False, False, False, False)
     #apparently you can send back a logic statement and it'll end up as a true/false bool. neato
     return commandRanResult["endResult"] == "SUCCESS"
 
@@ -19,14 +19,15 @@ def tryInstallShowdown():
         #clones showdown into folder
         if not pathlib.Path("showdownInstall/pokemon-showdown").exists():
             #takes it from the git repo
-            basicFunctionUtil.runCommand("git clone https://github.com/smogon/pokemon-showdown.git", True, "showdownInstall")
+            basicFunctionUtil.runCommand("git clone https://github.com/smogon/pokemon-showdown.git", True, "showdownInstall", False, False)
         return "SUCCESS"
 
 
-def launchServerWithSite():
+def launchServer():
     basicFunctionUtil.runCommand("node pokemon-showdown 8000", True, "showdownInstall/pokemon-showdown", True)
-    webbrowser.open("http://localhost:8000")
 
+def launchSite():
+    webbrowser.open("http://localhost:8000")
 
 def fullHousekeeping():
 
@@ -35,4 +36,6 @@ def fullHousekeeping():
     if installState == "SUCCESS":
 
         if pathlib.Path("showdownInstall/pokemon-showdown").exists():
-            launchServerWithSite()
+            launchServer()
+            input("server up! press enter to continue\n")
+            launchSite()
