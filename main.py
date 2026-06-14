@@ -87,6 +87,14 @@ class ObservationTrackingPlayer(Player):
 
         opponent_mon = battle.opponent_active_pokemon
         active_mon = battle.active_pokemon
+        opponentType1Mult = 1.0
+        opponentType2Mult = 0.0
+        if opponent_mon and active_mon:
+            opponentType1Mult = active_mon.damage_multiplier(opponent_mon.type_1)
+            if opponent_mon.type_2:
+                opponentType2Mult = active_mon.damage_multiplier(opponent_mon.type_2)
+            else:
+                opponentType2Mult = 0.0
 
 
         def chooseBestSwitch():
@@ -101,16 +109,17 @@ class ObservationTrackingPlayer(Player):
 
                 #find opponent damage multiplier
                 if opponent_mon:
-                    opponentType1Mult = switch_mon.damage_multiplier(opponent_mon.type_1)
+                    opponentType1MultVSwitch = switch_mon.damage_multiplier(opponent_mon.type_1)
                     if opponent_mon.type_2:
-                        opponentType2Mult = switch_mon.damage_multiplier(opponent_mon.type_2)
+                        opponentType2MultVSwitch = switch_mon.damage_multiplier(opponent_mon.type_2)
                     else:
-                        opponentType2Mult = 0
+                        opponentType2MultVSwitch = 0
 
                     #math stuff
-                    switchScore = switch_mon.current_hp_fraction * math.floor(5-(max(opponentType1Mult, opponentType2Mult) * 0.5))
+                    switchScore = switch_mon.current_hp_fraction * math.floor(5-(max(opponentType1MultVSwitch, opponentType2MultVSwitch) * 0.5))
 
                     switchScores[switch_mon] = switchScore
+
 
             scores = switchScores
             if scores:
@@ -122,7 +131,7 @@ class ObservationTrackingPlayer(Player):
                 #return best switch
                 return chosenSwitch
 
-
+        #cautious trait code
         if "cautious" in botInfo["personalityChunks"] and active_mon:
             if active_mon.current_hp_fraction <= 0.3 and battle.available_switches:
 
@@ -131,6 +140,45 @@ class ObservationTrackingPlayer(Player):
                 if chosenSwitch:
                     print(f"We're switching to {chosenSwitch.species}. (Cautious Switch)")
                     return self.create_order(chosenSwitch)
+                
+
+        #switches if 4x weakness
+        if not "stupid" in botInfo["personalityChunks"] and active_mon and battle.available_switches:
+            if max(opponentType1Mult, opponentType2Mult) >= 4:
+                chosenSwitch = chooseBestSwitch()
+
+                if chosenSwitch:
+                    print(f"We're switching to {chosenSwitch.species}. (4x Switch)")
+                    return self.create_order(chosenSwitch)
+                
+
+            if active_mon.current_hp_fraction <= 0.4:
+                chosenSwitch = chooseBestSwitch()
+
+                #1/3 chance to switch at low HP to avoid infinite roost-offs and the sort
+                if chosenSwitch and random.randint(1,3) == 3:
+                    print(f"We're switching to {chosenSwitch.species}. (Low Health Switch)")
+                    return self.create_order(chosenSwitch)
+
+
+
+        #erratic gives a 20% chance to try to switch at random
+
+        if "erratic" in botInfo["personalityChunks"] and active_mon and battle.available_switches:
+            if random.randint(1,5) == 5:
+
+                #a further 1/2 chance to make a completely random switch instead of the best possible one
+                if random.randint(1,2) == 1:
+                    chosenSwitch = chooseBestSwitch()
+                    if chosenSwitch:
+                        print(f"We're switching to {chosenSwitch.species}. (Erratic Switch, Smart)")
+                        return self.create_order(chosenSwitch)
+
+                else:
+                    chosenSwitch =  random.choice(battle.available_switches)
+                    print(f"We're switching to {chosenSwitch.species}. (Erratic Switch, Random)")
+                    return self.create_order(chosenSwitch)
+                    
 
 
 
@@ -149,7 +197,7 @@ class ObservationTrackingPlayer(Player):
 
         #the actual logic determining their choices
         for move in battle.available_moves:
-            score = 10
+            score = 10.0
 
 
 
@@ -187,12 +235,40 @@ class ObservationTrackingPlayer(Player):
                         score += 5
                 
                 if move.heal > 0 and active_mon.current_hp_fraction <= 0.4:
-                    score += 2
+                    score += 3
 
+                if move.heal > 0 and active_mon.current_hp_fraction >= 0.7:
+                    score -= 10
+
+                if "setup" in botInfo["personalityChunks"]:
+                    #slightly prioritizes status moves at high health
+                    if move.base_power <= 0 and active_mon.current_hp_fraction >= 0.8:
+                        score += 3
+                    moveScores[move] = score
+
+                if move.base_power <= 0 and active_mon.current_hp_fraction >= 1:
+                    score += 1.5
+
+                if move.base_power <= 0 and active_mon.current_hp_fraction <= 0.75:
+                    score -= 2
+
+
+            #slight negative bias towards low-power offensive moves
+            if 0 < move.base_power <= 70 and move.priority < 1:
+                score -= 1
+
+            #espeed good
+            if move.base_power <= 70 and move.priority >= 1:
+                score += 1
+            
+            #add slight bonus for base power
+                score += move.base_power * 0.015
 
 
             if "aggressive" in botInfo["personalityChunks"]:
-                if move.base_power > 0 :
+                if move.base_power > 0:
+                    score += 1
+                if move.base_power > 95:
                     score += 2
 
 
@@ -204,8 +280,22 @@ class ObservationTrackingPlayer(Player):
                     score += 2
 
 
+            if "erratic" in botInfo["personalityChunks"]:
+                score += random.randint(-1, 1)
+            
+
+            if "opportunist" in botInfo["personalityChunks"]:
+                if move.priority >= 1 and opponent_mon.current_hp_fraction <= 0.2:
+                    score += 5
+
+
+            if "setup" in botInfo["personalityChunks"]:
+                #slightly prioritizes status moves at high health
+                if move.base_power <= 0 and active_mon.current_hp_fraction >= 0.8:
+                    score += 3
 
             moveScores[move] = score
+
         
         highestScore = max(moveScores.values())
 

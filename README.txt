@@ -11,7 +11,7 @@ AI Personality Chunks:
 2. Knowledgeable: (Implemented)
     Knows the type matchup, gives slight priority to super effective attack
     .
-3. Cautious:
+3. Cautious: (Implemented)
     If their pokemon is at less than 1/3rd HP and they have a pokemon that is above that threshold, they'll prioritize switching, keeping in mind the type chart
 
 4. Aggressive: (Implemented)
@@ -22,6 +22,11 @@ AI Personality Chunks:
 
 6. Stupid (Implemented)
     Doesn't follow safeguards, such as not applying statuses to already statused pokemon.
-    
+
 7. Opportunistic
     Prioritizes priority moves if the opponent is low on health.
+
+8. Varied
+    Adds slight randomness to choices.
+
+9. Setup
