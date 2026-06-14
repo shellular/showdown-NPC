@@ -26,7 +26,7 @@ AI Personality Chunks:
 7. Opportunistic (Implemented)
     Prioritizes priority moves if the opponent is low on health.
 
-8. Varied (Implemented)
+8. Erratic (Implemented)
     Adds slight randomness to choices.
 
 9. Setup (Implemented)
