@@ -12,6 +12,7 @@ from poke_env import ServerConfiguration
 from funcs import basicFunctionUtil
 from funcs import serverLoad
 import random
+import math
 
 botToFight = ""
 botInfo = None
@@ -82,8 +83,54 @@ class ObservationTrackingPlayer(Player):
             f"{snapshot.opponent_active_pokemon} ({opp_hp:.0%})"
             )
         
+
+
         opponent_mon = battle.opponent_active_pokemon
         active_mon = battle.active_pokemon
+
+
+        def chooseBestSwitch():
+            switchScores = {}
+
+            for switch_mon in battle.available_switches:
+                switchScore = 10.0
+
+                if switch_mon.current_hp_fraction < 0.33:
+                    switchScore = 0
+                    continue
+
+                #find opponent damage multiplier
+                if opponent_mon:
+                    opponentType1Mult = switch_mon.damage_multiplier(opponent_mon.type_1)
+                    if opponent_mon.type_2:
+                        opponentType2Mult = switch_mon.damage_multiplier(opponent_mon.type_2)
+                    else:
+                        opponentType2Mult = 0
+
+                    #math stuff
+                    switchScore = switch_mon.current_hp_fraction * math.floor(5-(max(opponentType1Mult, opponentType2Mult) * 0.5))
+
+                    switchScores[switch_mon] = switchScore
+
+            scores = switchScores
+            if scores:
+                highestSwitchScore = max(scores.values())
+
+                bestSwitches = [mon for mon, score in scores.items() if score == highestSwitchScore]
+                chosenSwitch = random.choice(bestSwitches)
+
+                #return best switch
+                return chosenSwitch
+
+
+        if "cautious" in botInfo["personalityChunks"] and active_mon:
+            if active_mon.current_hp_fraction <= 0.3 and battle.available_switches:
+
+                chosenSwitch = chooseBestSwitch()
+
+                if chosenSwitch:
+                    print(f"We're switching to {chosenSwitch.species}. (Cautious Switch)")
+                    return self.create_order(chosenSwitch)
 
 
 
@@ -93,8 +140,10 @@ class ObservationTrackingPlayer(Player):
         if "random" in botInfo["personalityChunks"]:
             return self.choose_random_move(battle)
         
+
+
         #put all the moves in a data w/ scores
-        move_scores = {}
+        moveScores = {}
 
 
 
@@ -156,22 +205,22 @@ class ObservationTrackingPlayer(Player):
 
 
 
-
-            move_scores[move] = score
+            moveScores[move] = score
         
-        highest_score = max(move_scores.values())
+        highestScore = max(moveScores.values())
 
         # which is the highest scorer?
-        best_moves = [move for move, score in move_scores.items() if score == highest_score]
+        bestMoves = [move for move, score in moveScores.items() if score == highestScore]
 
-        # Debug print to see what the bot is thinking
-        print(f"Move scores: {[f'{m.id}: {s}' for m, s in move_scores.items()]}")
-        print(f"Choosing from best options: {[m.id for m in best_moves]}")
+        # debug print to see what the bot is thinking
+        print(f"Move scores: {[f'{m.id}: {s}' for m, s in moveScores.items()]}")
+        print(f"Choosing from best options: {[m.id for m in bestMoves]}")
+
 
         #pick the best one and send that back
         
-        chosen_move = random.choice(best_moves)
-        return self.create_order(chosen_move)
+        chosenMove = random.choice(bestMoves)
+        return self.create_order(chosenMove)
 
   
         
