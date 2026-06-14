@@ -3,6 +3,25 @@
 
 Avatars for bots can be found here: https://play.pokemonshowdown.com/sprites/trainers/
 
-Gen2 AI Routines:
--Basic:
-    Is move redundant? (Already has status?)
+AI Personality Chunks:
+
+1. Random (Implemented)
+    Always picks an option at random
+    
+2. Knowledgeable: (Implemented)
+    Knows the type matchup, gives slight priority to super effective attack
+    .
+3. Cautious:
+    If their pokemon is at less than 1/3rd HP and they have a pokemon that is above that threshold, they'll prioritize switching, keeping in mind the type chart
+
+4. Aggressive: (Implemented)
+    Slightly prioritizes damaging moves.
+
+5. Worrywart: (Implemented)
+    Dramatically prioritizes healing moves upon low health, if available.
+
+6. Stupid (Implemented)
+    Doesn't follow safeguards, such as not applying statuses to already statused pokemon.
+    
+7. Opportunistic
+    Prioritizes priority moves if the opponent is low on health.

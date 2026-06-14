@@ -2,15 +2,199 @@ import os
 import subprocess
 import asyncio
 import poke_env
-from poke_env.player import RandomPlayer
+from dataclasses import dataclass
+from typing import Dict, List, Optional
+from poke_env.battle import AbstractBattle, Battle, Field, SideCondition, Weather
+from poke_env.player import RandomPlayer, Player
+from poke_env.player.battle_order import BattleOrder
 from poke_env import AccountConfiguration
 from poke_env import ServerConfiguration
 from funcs import basicFunctionUtil
 from funcs import serverLoad
+import random
 
 botToFight = ""
 botInfo = None
 bot = None
+
+
+#fuck if i know what this means. this is taken from https://github.com/hsahovic/poke-env/blob/master/examples/tracking_observations.py
+@dataclass
+class TurnSnapshot:
+    turn: int
+    active_pokemon: Optional[str]
+    opponent_active_pokemon: Optional[str]
+    team_hp: Dict[str, float]
+    opponent_team_hp: Dict[str, float]
+    weather: Dict[Weather, int]
+    fields: Dict[Field, int]
+    side_conditions: Dict[SideCondition, int]
+    opponent_side_conditions: Dict[SideCondition, int]
+
+    @classmethod
+    def from_battle(cls, battle: Battle):
+        return cls(
+            turn=battle.turn,
+            active_pokemon=(
+                battle.active_pokemon.species if battle.active_pokemon else None
+            ),
+            opponent_active_pokemon=(
+                battle.opponent_active_pokemon.species
+                if battle.opponent_active_pokemon
+                else None
+            ),
+            team_hp={
+                mon.species: mon.current_hp_fraction for mon in battle.team.values()
+            },
+            opponent_team_hp={
+                mon.species: mon.current_hp_fraction
+                for mon in battle.opponent_team.values()
+            },
+            weather=dict(battle.weather),
+            fields=dict(battle.fields),
+            side_conditions=dict(battle.side_conditions),
+            opponent_side_conditions=dict(battle.opponent_side_conditions),
+        )
+    
+
+
+#modified base class from that same github
+class ObservationTrackingPlayer(Player):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.observations: Dict[str, List[TurnSnapshot]] = {}
+
+    def choose_move(self, battle: AbstractBattle) -> BattleOrder:
+        assert isinstance(battle, Battle)
+        history = self.observations.setdefault(battle.battle_tag, [])
+        snapshot = TurnSnapshot.from_battle(battle)
+        history.append(snapshot)
+
+        our_hp = snapshot.team_hp[snapshot.active_pokemon]
+        opp_hp = snapshot.opponent_team_hp[snapshot.opponent_active_pokemon]
+        currentWeather = snapshot.weather
+        currentOpponentStatus = snapshot.opponent_side_conditions
+
+
+        print(
+            f"  Turn {snapshot.turn}: "
+            f"{snapshot.active_pokemon} ({our_hp:.0%}) vs "
+            f"{snapshot.opponent_active_pokemon} ({opp_hp:.0%})"
+            )
+        
+        opponent_mon = battle.opponent_active_pokemon
+        active_mon = battle.active_pokemon
+
+
+
+        if not battle.available_moves:
+            return self.choose_random_move(battle)
+        
+        if "random" in botInfo["personalityChunks"]:
+            return self.choose_random_move(battle)
+        
+        #put all the moves in a data w/ scores
+        move_scores = {}
+
+
+
+        #the actual logic determining their choices
+        for move in battle.available_moves:
+            score = 10
+
+
+
+            # unless the bot is marked as stupid
+            if "stupid" not in botInfo["personalityChunks"]:
+                #
+
+                if opponent_mon and move.type and move.base_power > 0 and "knowledgeable" in botInfo["personalityChunks"]:
+                    multiplier = opponent_mon.damage_multiplier(move)
+                    if multiplier > 1:
+                        #+1 for 2x effective, +4 for 4x
+                        score += (multiplier * 0.5) ** 2
+                    #if not effective, disregard
+                    elif multiplier <= 0.5:
+                        score -= 3
+
+                    
+                #if immune, disregard attacks
+                if opponent_mon and move.type:
+                    if opponent_mon.damage_multiplier(move) == 0:
+                        score -= 20
+
+
+                #if opponent is statused, don't do status moves
+                if move.status is not None:
+                    if opponent_mon and opponent_mon.status is not None:
+                        score -= 20
+
+
+                #disregard self destructing moves at high health, prioritize at low health
+                if move.self_destruct and active_mon:
+                    if active_mon.current_hp_fraction >= 0.25:
+                        score -= 7
+                    elif active_mon.current_hp_fraction <= 0.15:
+                        score += 5
+                
+                if move.heal > 0 and active_mon.current_hp_fraction <= 0.4:
+                    score += 2
+
+
+
+            if "aggressive" in botInfo["personalityChunks"]:
+                if move.base_power > 0 :
+                    score += 2
+
+
+
+            if "worrywart" in botInfo["personalityChunks"]:
+                if move.heal > 0 and active_mon.current_hp_fraction <= 0.5:
+                    score += 2
+                if move.heal > 0 and active_mon.current_hp_fraction <= 0.3:
+                    score += 2
+
+
+
+
+            move_scores[move] = score
+        
+        highest_score = max(move_scores.values())
+
+        # which is the highest scorer?
+        best_moves = [move for move, score in move_scores.items() if score == highest_score]
+
+        # Debug print to see what the bot is thinking
+        print(f"Move scores: {[f'{m.id}: {s}' for m, s in move_scores.items()]}")
+        print(f"Choosing from best options: {[m.id for m in best_moves]}")
+
+        #pick the best one and send that back
+        
+        chosen_move = random.choice(best_moves)
+        return self.create_order(chosen_move)
+
+  
+        
+
+    def _battle_finished_callback(self, battle: AbstractBattle):
+        history = self.observations.pop(battle.battle_tag, [])
+        print(f"{battle.battle_tag}: {len(history)} turns recorded")
+        for snapshot in history:
+            if not snapshot.active_pokemon or not snapshot.opponent_active_pokemon:
+                continue
+            our_hp = snapshot.team_hp[snapshot.active_pokemon]
+            opp_hp = snapshot.opponent_team_hp[snapshot.opponent_active_pokemon]
+            print(
+                f"  Turn {snapshot.turn}: "
+                f"{snapshot.active_pokemon} ({our_hp:.0%}) vs "
+                f"{snapshot.opponent_active_pokemon} ({opp_hp:.0%})"
+            )
+
+
+
+
+
+
 
 async def main():
     global botToFight, botInfo
@@ -34,13 +218,18 @@ async def main():
     
     #tries to open the bot and kills everything if it fails
     try:
-        
-        bot = RandomPlayer(
+        isImpatient = botInfo["impatient"]
+
+        bot = ObservationTrackingPlayer(
             avatar=botInfo["avatar"],
             account_configuration=AccountConfiguration(botInfo["name"], None),
-            max_concurrent_battles=1
+            max_concurrent_battles=1,
+            #if impatient, set timer upon launch
+            start_timer_on_battle_start=botInfo["impatient"]
         )
+
         print("bot initialized!\n\n")
+
     except Exception as e:
         print(f"the bot couldn't be initialized. \n{str(e)}")
         return
@@ -51,5 +240,10 @@ async def main():
     "Click \"Challenge\" under their profile, and set the challenge to be a Random Battle (it's that by default.) They should accept.")
 
     await bot.accept_challenges(None, 1)
+
+
+
+    #okay now we're logicing
+
 
 asyncio.run(main())

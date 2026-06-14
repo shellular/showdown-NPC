@@ -1,5 +1,6 @@
 {
     "name": "Dummy",
     "avatar": "supernerd",
-    "behaviors": "basic"
+    "impatient": true,
+    "personalityChunks": ["knowledgeable", "worrywart"]
 }
